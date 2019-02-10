@@ -20,7 +20,6 @@ class Sroub(Soucast):
     mu_n = 0.2
     alpha = 30
     kontrola = True
-    zatizeni_sroubu = False
 
 
     # vypocty

@@ -17,6 +17,10 @@ class Zatizeni(object):
     M_YI = numpy.asarray([0,0])
     M_ZI = numpy.asarray([0,0])
     N_R = 1
+
+    def setTypVypoctu(self, typ):
+        self.typ = typ
+
         
     def setall(self, priruba1, priruba2, srouby, tesneni, matice ,podlozka1, podlozka2):
         self.objPriruba1 = priruba1
@@ -126,10 +130,10 @@ class Zatizeni(object):
     def setF_G0(self):
         """(1)(54)"""
         self.objSrouby.calcEps()
-        if self.objSrouby.zatizeni_sroubu:
+        if self.typ == "KontrolaSroubu":
             self.calcFM()
             self.F_G0 = numpy.vstack((self.objSrouby.F_B0spec * (1-self.objSrouby.Eps_minus) - self.F_RI[:,0]))     #(1)
-        else:
+        elif self.typ == "MiraNetesnosti":
             self.F_G0 = numpy.vstack((self.objSrouby.A_B * self.objSrouby.f_B0 / 3 - self.F_RI[:,0]))               #(54)
 
 
@@ -140,19 +144,15 @@ class Zatizeni(object):
         self.F_G0req = numpy.asarray([numpy.asarray([0]),numpy.asarray([0])])
         self.calcF_Gdelta()
         self.F_G0req = numpy.vstack((numpy.maximum(numpy.concatenate(self.F_G0min),numpy.concatenate(self.F_Gdelta))))
-        A=(self.F_G0req > self.F_G0)
-        B=self.objSrouby.zatizeni_sroubu
-        C=numpy.all(A.all and B)
-        if (self.objSrouby.zatizeni_sroubu and (self.F_G0req > self.F_G0).all):
+        if (self.typ == "KontrolaSroubu" and (self.F_G0req > self.F_G0).any):
             print('Pro splneni kriterii tesnosti se musi zvysit hodnota F_B0spec a vypocet spustit znovu!')
             sys.exit(int(0))
-        else:
-            while numpy.all(numpy.absolute(self.F_G0req - self.F_G0) >= (self.F_G0req * 0.001)):
-                self.calcF_Gdelta()
-                self.F_G0req = numpy.vstack((numpy.maximum(numpy.concatenate(self.F_G0min),numpy.concatenate(self.F_Gdelta))))
-                self.F_G0 = self.F_G0req
-                self.calcF_Gdelta()
-                self.F_G0req = numpy.vstack((numpy.maximum(numpy.concatenate(self.F_G0min),numpy.concatenate(self.F_Gdelta))))
+        while numpy.all(numpy.absolute(self.F_G0req - self.F_G0) >= (self.F_G0req * 0.001)):
+            self.calcF_Gdelta()
+            self.F_G0req = numpy.vstack((numpy.maximum(numpy.concatenate(self.F_G0min),numpy.concatenate(self.F_Gdelta))))
+            self.F_G0 = self.F_G0req
+            self.calcF_Gdelta()
+            self.F_G0req = numpy.vstack((numpy.maximum(numpy.concatenate(self.F_G0min),numpy.concatenate(self.F_Gdelta))))
 
 
     def calcF_B0req(self):
@@ -206,10 +206,10 @@ class Zatizeni(object):
 
     def calcF_G0d(self):
         """(2)(119)"""
-        if self.objSrouby.zatizeni_sroubu:
-            self.F_G0d = numpy.maximum(self.F_B0min - self.F_RI[:,0] , (2/3) * (1 - 10 / self.N_R) * self.F_B0max - self.F_RI[:,0])         #(2) pri vypoctu s predem znamym zatizenim sroubu F_B0spec
-        else:
-            self.F_G0d = numpy.maximum(self.F_Gdelta , numpy.vstack((2/3) * (1 - 10 / self.N_R) * self.F_B0max - self.F_RI[:,0]))                         #(119) v ostatnich pripadech
+        if self.typ == "KontrolaSroubu":
+            self.F_G0d = numpy.maximum(self.F_B0min - self.F_RI[:,0] , (2/3) * (1 - 10 / self.N_R) * self.F_B0max - self.F_RI[:,0])         # (2) pri vypoctu s predem znamym zatizenim sroubu F_B0spec
+        elif self.typ == "MiraNetesnosti":
+            self.F_G0d = numpy.maximum(self.F_Gdelta , numpy.vstack((2/3) * (1 - 10 / self.N_R) * self.F_B0max - self.F_RI[:,0]))           # (119) v ostatnich pripadech
        
     def calcF_GI(self):
         """(121)"""
